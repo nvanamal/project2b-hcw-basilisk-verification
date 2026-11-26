@@ -1,0 +1,2 @@
+# Reproduction status
+HCW reconstruction uses RK4 and a provisional sampled dwell convention; exact original integrator and termination ordering are unknown. New code is untested and is not expected to reproduce archived numbers exactly without validation. Basilisk original source, Monte Carlo runner and Gymnasium environment remain pending. Reported classical parity: 2786 s, 4.44555 m error, 0.008890 m/s speed, 3.45167 m/s delta-v. No learned policy claim. License pending author choice.
