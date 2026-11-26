@@ -1,0 +1,22 @@
+# Transcribed from supplementary material V3
+orbit_altitude_m: 700000
+mu: 3.986004418e14
+earth_radius_m: 6378136.3
+initial_position_m: [1000, 250, -100]
+initial_velocity_m_s: [-0.03, 0, 0]
+hold_point_m: [100, 0, 0]
+keep_out_m: 50
+position_tolerance_m: 5
+speed_tolerance_m_s: 0.05
+dwell_s: 60
+dt_s: 2
+max_duration_s: 7200
+kp: 0.00002
+kd: 0.012
+command_limit_m_s2: 0.02
+position_noise_sd_m: 0.2
+velocity_noise_sd_m_s: 0.0002
+multiplicative_thrust_sd: 0.01
+additive_actuation_sd_m_s2: 0.0001
+chief_mass_kg: 500
+deputy_mass_kg: 250
