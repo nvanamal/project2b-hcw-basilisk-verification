@@ -1,36 +1,68 @@
-"""New HCW reconstruction, not original research source."""
+"""Research-only HCW rendezvous-to-hold-point baseline."""
+import argparse, json
 import numpy as np
-
-def rhs(s, u, n):
-    x,y,z,vx,vy,vz=s
-    return np.array([vx,vy,vz,3*n*n*x+2*n*vy+u[0],-2*n*vx+u[1],-n*n*z+u[2]])
-
-def command(s,n,kp=2e-5,kd=.012,limit=.02):
-    x,y,z,vx,vy,vz=s
-    u=np.array([-kp*(x-100)-kd*vx-2*n*vy-3*n*n*x,-kp*y-kd*vy+2*n*vx,-kp*z-kd*vz+n*n*z])
-    norm=np.linalg.norm(u)
-    return u*min(1,limit/norm) if norm else u
-
-def step(s,u,n,dt=2):
-    a=rhs(s,u,n); b=rhs(s+dt*a/2,u,n)
-    c=rhs(s+dt*b/2,u,n); d=rhs(s+dt*c,u,n)
-    return s+dt*(a+2*b+2*c+d)/6
-
-def run(seed=0,noisy=False):
-    rng=np.random.default_rng(seed)
-    n=np.sqrt(3.986004418e14/(6378136.3+700000)**3)
-    s=np.array([1000.,250.,-100.,-.03,0.,0.])
-    dwell=dv=0.; minimum=np.linalg.norm(s[:3])
-    for t in range(0,7201,2):
-        err=np.linalg.norm(s[:3]-[100,0,0]); speed=np.linalg.norm(s[3:])
-        minimum=min(minimum,np.linalg.norm(s[:3]))
-        success=dwell>=60 and minimum>=50
-        if success or minimum<50 or t==7200:
-            return dict(seed=seed,success=success,completion_s=t,position_error_m=err,speed_m_s=speed,minimum_separation_m=minimum,delta_v_m_s=dv)
-        measured=s+np.r_[rng.normal(0,.2,3),rng.normal(0,.0002,3)] if noisy else s
-        u=command(measured,n)
-        if noisy: u=u*(1+rng.normal(0,.01,3))+rng.normal(0,.0001,3)
-        s=step(s,u,n); dv+=2*np.linalg.norm(u)
-        dwell=dwell+2 if err<=5 and speed<=.05 else 0
-if __name__=="__main__":
-    print(run())
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.linalg import solve_continuous_are
+MU=3.986004418e14
+R_E=6378.1363e3
+ALT=700e3
+N=np.sqrt(MU/(R_E+ALT)**3)
+def A_hcw(n=N):
+    A=np.zeros((6,6)); A[:3,3:]=np.eye(3)
+    A[3,0]=3*n*n; A[3,4]=2*n
+    A[4,3]=-2*n
+    A[5,2]=-n*n
+    return A
+def B_hcw():
+    B=np.zeros((6,3)); B[3:,:]=np.eye(3); return B
+def lqr_gain():
+    A=A_hcw(); B=B_hcw()
+    Q=np.diag([1/100**2]*3+[1/0.2**2]*3)
+    R=np.diag([1/2e-4**2]*3)
+    P=solve_continuous_are(A,B,Q,R)
+    return np.linalg.solve(R,B.T@P)
+def rk4(x,u,dt,A,B):
+    f=lambda q:A@q+B@u
+    k1=f(x); k2=f(x+dt*k1/2); k3=f(x+dt*k2/2); k4=f(x+dt*k3)
+    return x+dt*(k1+2*k2+2*k3+k4)/6
+def run(seed=42, dt=2.0, duration=7200.0, noise_pos=0.2, noise_vel=0.0002,
+        thrust_error=0.01, direction_error=0.005):
+    rng=np.random.default_rng(seed); A=A_hcw(); B=B_hcw()
+    goal=np.array([100.,0.,0.,0.,0.,0.])
+    x=np.array([1000.,250.,-100.,-0.03,0.0,0.0])
+    rows=[]; dv=0.; aborted=False; dwell=0.
+    for k,t in enumerate(np.arange(0,duration+dt,dt)):
+        xhat=x.copy(); xhat[:3]+=rng.normal(0,noise_pos,3); xhat[3:]+=rng.normal(0,noise_vel,3)
+        natural=(A@xhat)[3:]
+        kp=2.0e-5; kd=1.2e-2
+        u_cmd=-natural-kp*(xhat[:3]-goal[:3])-kd*(xhat[3:]-goal[3:])
+        umax=2e-2; norm=np.linalg.norm(u_cmd)
+        if norm>umax: u_cmd*=umax/norm
+        u_real=u_cmd*(1+rng.normal(0,thrust_error,3))+rng.normal(0,direction_error*umax,3)
+        sep=np.linalg.norm(x[:3])
+        if sep<50.0:
+            aborted=True; u_real=np.zeros(3)
+        rows.append([t,*x,*xhat,*u_cmd,*u_real,sep,dv,aborted])
+        if aborted: break
+        x=rk4(x,u_real,dt,A,B); dv+=np.linalg.norm(u_real)*dt
+        pos_err=np.linalg.norm(x[:3]-goal[:3]); speed=np.linalg.norm(x[3:])
+        dwell = dwell+dt if (pos_err<=5 and speed<=0.05 and np.linalg.norm(x[:3])>=50) else 0
+        if dwell>=60: break
+    cols=['t','x','y','z','vx','vy','vz','xhat','yhat','zhat','vxhat','vyhat','vzhat',
+          'ux_cmd','uy_cmd','uz_cmd','ux_real','uy_real','uz_real','separation','delta_v','aborted']
+    df=pd.DataFrame(rows,columns=cols); df.to_csv('trajectory.csv',index=False)
+    final=df.iloc[-1]
+    summary={'seed':seed,'success':bool(not aborted and dwell>=60),'aborted':bool(aborted),
+             'final_time_s':float(final.t),'final_position_error_m':float(np.linalg.norm(final[['x','y','z']].to_numpy(float)-goal[:3])),
+             'final_speed_mps':float(np.linalg.norm(final[['vx','vy','vz']].to_numpy(float))),
+             'minimum_separation_m':float(df.separation.min()),'realized_delta_v_mps':float(final.delta_v)}
+    with open('run_summary.json','w') as f: json.dump(summary,f,indent=2)
+    fig,ax=plt.subplots(figsize=(7,6)); ax.plot(df.x,df.y,label='Chaser'); ax.scatter([0],[0],c='red',label='Debris')
+    ax.scatter([100],[0],c='green',label='100 m hold point'); c=plt.Circle((0,0),50,color='red',alpha=.15); ax.add_patch(c)
+    ax.set_aspect('equal','box'); ax.set_xlabel('Hill x (m)'); ax.set_ylabel('Hill y (m)'); ax.set_title('HCW rendezvous baseline'); ax.grid(); ax.legend(); fig.tight_layout(); fig.savefig('trajectory.png',dpi=180)
+    print(json.dumps(summary,indent=2))
+    return summary
+if __name__=='__main__':
+    ap=argparse.ArgumentParser(); ap.add_argument('--controller',default='lqr',help='Legacy unused option; actual controller is HCW-compensated PD'); ap.add_argument('--seed',type=int,default=42)
+    args=ap.parse_args(); run(seed=args.seed)
