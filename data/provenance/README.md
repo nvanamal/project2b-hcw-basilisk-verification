@@ -1,0 +1,1 @@
+Seed-42 summary is transcribed from the supplied machine-readable deterministic JSON. Seed-8 summary is transcribed from a screenshot of the worker JSON, not original file bytes. The original worker-failure record and original rerun JSON still require deposit. No new simulation was performed.
