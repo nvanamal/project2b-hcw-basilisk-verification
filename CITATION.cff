@@ -1,0 +1,7 @@
+cff-version: 1.2.0
+message: Please cite this research software if you use it.
+title: Cross-Model Verification of Autonomous Rendezvous Using HCW and Basilisk Dynamics Under Navigation and Actuation Uncertainty
+authors:
+  - family-names: Vanamala
+    given-names: Nagendrababu
+repository-code: https://github.com/nvanamal/project2b-hcw-basilisk-verification
