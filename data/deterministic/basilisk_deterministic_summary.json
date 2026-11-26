@@ -1,0 +1,30 @@
+{
+  "model": "controlled Basilisk chief-deputy rendezvous",
+  "seed": 42,
+  "position_noise_sigma_m": 0,
+  "velocity_noise_sigma_mps": 0,
+  "thrust_error_sigma": 0,
+  "additive_actuation_scale": 0,
+  "additive_actuation_sigma_mps2": 0,
+  "success": true,
+  "aborted": false,
+  "termination_reason": "hold-point requirements satisfied",
+  "final_time_s": 2786,
+  "initial_relative_distance_m": 1035.615758860399,
+  "final_relative_distance_m": 104.26235991618962,
+  "final_position_error_m": 4.444905995547117,
+  "final_relative_speed_mps": 0.008881735139622296,
+  "minimum_separation_m": 104.26235991618962,
+  "minimum_hold_point_error_m": 4.444905995547117,
+  "realized_delta_v_mps": 3.4523794845694398,
+  "hold_point_hill_m": [
+    100,
+    0,
+    0
+  ],
+  "position_tolerance_m": 5,
+  "speed_tolerance_mps": 0.05,
+  "required_hold_time_s": 60,
+  "keep_out_radius_m": 50,
+  "maximum_control_acceleration_mps2": 0.02
+}
