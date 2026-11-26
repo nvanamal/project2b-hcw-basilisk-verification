@@ -1,7 +1,10 @@
-"""Generate NEW reconstruction results, not archived observations."""
+"""Original execution filename: monte_carlo.py."""
+import argparse
 import pandas as pd
 from rendezvous_hcw import run
-from pathlib import Path
-if __name__ == '__main__':
-    Path('outputs').mkdir(exist_ok=True)
-    pd.DataFrame([run(i,True) for i in range(100)]).to_csv('outputs/hcw_reconstruction.csv',index=False)
+ap=argparse.ArgumentParser(); ap.add_argument('--runs',type=int,default=100); args=ap.parse_args()
+rows=[]
+for seed in range(args.runs):
+    s=run(seed=seed); rows.append(s)
+pd.DataFrame(rows).to_csv('monte_carlo_results.csv',index=False)
+print(pd.DataFrame(rows).describe(include='all'))
