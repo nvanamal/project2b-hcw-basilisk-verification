@@ -1,0 +1,7 @@
+# Provisional reconstruction dependencies, not original environment freeze
+numpy
+scipy
+pandas
+matplotlib
+PyYAML
+# Basilisk separately: reported bsk 2.9.1; verify installation compatibility
