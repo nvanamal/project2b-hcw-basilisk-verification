@@ -1,0 +1,2 @@
+# Seed 8 (reported provenance)
+Original Basilisk worker failed with WinError 32, file in use. No physical metrics were returned. Author reports isolated rerun: success, no physical abort, completion 2832 s, error 4.388764 m, speed 0.009822002 m/s, minimum separation 104.263699 m, realized delta-v 3.535987349 m/s (author supplied). Wall time unavailable. Original logs pending; this is a transcription of supplementary S7, not an original execution record.
